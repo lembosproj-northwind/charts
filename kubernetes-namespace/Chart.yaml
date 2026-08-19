@@ -1,0 +1,11 @@
+apiVersion: v2
+name: kubernetes-namespace
+description: The substrate an environment needs before anything can be deployed into it - namespace, quotas, network policy.
+type: application
+version: 1.3.0
+appVersion: "1.3.0"
+kubeVersion: ">=1.28.0-0"
+keywords: [lembos, blueprint, environment]
+annotations:
+  lembos.dev/blueprint: platform/kubernetes-namespace
+  lembos.dev/blueprint-type: Environment

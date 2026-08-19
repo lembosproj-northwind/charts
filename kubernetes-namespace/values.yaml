@@ -1,0 +1,48 @@
+# An Environment blueprint, so this takes an Environment and a Stamp rather than a ComponentSpec.
+# It runs once per (environment x stamp) before anything is deployed into it, which is what moves an
+# environment out of PendingBinding.
+
+lembos:
+  environment: ""     # qualified name, e.g. northwind/prod
+  stage: ""           # Development | Test | Staging | Production - what governance matches on
+  stamp: ""           # e.g. eu-west
+  # StampDimension list, rendered as labels so a placement decision is legible on the cluster.
+  dimensions: {}
+  #  region: eu-west-1
+  #  country: nl
+
+namespace:
+  # Defaults to {environment}-{stamp} with slashes flattened.
+  name: ""
+  labels: {}
+  annotations: {}
+
+# Sized by stage rather than by a size class: what a shared dev namespace may consume is a different
+# question from what one workload needs.
+quota:
+  enabled: true
+  requestsCpu: "4"
+  requestsMemory: 8Gi
+  limitsCpu: "8"
+  limitsMemory: 16Gi
+  pods: "50"
+  persistentVolumeClaims: "10"
+
+limitRange:
+  enabled: true
+  defaultRequest: { cpu: 100m, memory: 128Mi }
+  default:        { cpu: 500m, memory: 512Mi }
+  max:            { cpu: "4",  memory: 8Gi }
+
+# Default-deny with explicit allows. A production namespace that permits everything is a namespace
+# that has been created but not isolated, which is worse than not having created it.
+networkPolicy:
+  enabled: true
+  allowSameNamespace: true
+  allowDns: true
+  allowedNamespaces: []
+
+# Pull credentials for the registry the charts and images come from.
+imagePullSecret:
+  enabled: false
+  name: ghcr

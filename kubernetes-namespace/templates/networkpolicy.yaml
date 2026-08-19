@@ -1,0 +1,46 @@
+{{- if .Values.networkPolicy.enabled }}
+{{- /* Default deny, then add back what is named. Order matters only for the reader; Kubernetes
+       unions the policies. */}}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "ns.name" . }}-default-deny
+  namespace: {{ include "ns.name" . }}
+  labels: {{- include "ns.labels" . | nindent 4 }}
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "ns.name" . }}-allow
+  namespace: {{ include "ns.name" . }}
+  labels: {{- include "ns.labels" . | nindent 4 }}
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    {{- if .Values.networkPolicy.allowSameNamespace }}
+    - from:
+        - podSelector: {}
+    {{- end }}
+    {{- range .Values.networkPolicy.allowedNamespaces }}
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ . }}
+    {{- end }}
+  egress:
+    {{- if .Values.networkPolicy.allowDns }}
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - { protocol: UDP, port: 53 }
+        - { protocol: TCP, port: 53 }
+    {{- end }}
+    - to:
+        - podSelector: {}
+{{- end }}

@@ -1,0 +1,54 @@
+# The same values contract as the other component charts, plus a schedule. `replicas` is accepted and
+# ignored: a ComponentSpec declares it for every component, and a CronJob has no such concept. Failing
+# on it would make one shared spec shape unusable for one of the three archetypes.
+
+lembos:
+  component: ""
+  environment: ""
+  stamp: ""
+  specVersion: ""
+
+image:
+  repository: ghcr.io/lembosproj-northwind/apps/cron-job
+  tag: latest
+  digest: ""
+  pullPolicy: IfNotPresent
+
+replicas: 1   # ignored; see above
+ports: []     # ignored; a job serves nothing
+
+resourceBindings: {}
+config: {}
+sizeClass: small
+
+sizes:
+  small:
+    requests: { cpu: 100m, memory: 128Mi }
+    limits:   { cpu: 500m, memory: 512Mi }
+  medium:
+    requests: { cpu: 500m, memory: 512Mi }
+    limits:   { cpu: "2",  memory: 2Gi }
+  large:
+    requests: { cpu: "2",  memory: 2Gi }
+    limits:   { cpu: "4",  memory: 8Gi }
+
+schedule: "0 2 * * *"
+timeZone: UTC
+
+# Two runs of a migration job overlapping is the failure this blueprint exists to prevent.
+concurrencyPolicy: Forbid
+startingDeadlineSeconds: 300
+backoffLimit: 3
+activeDeadlineSeconds: 3600
+successfulJobsHistoryLimit: 3
+failedJobsHistoryLimit: 3
+suspend: false
+
+serviceAccount:
+  create: true
+  annotations: {}
+
+podAnnotations: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
