@@ -13,7 +13,8 @@
 
 {{- define "ns.labels" -}}
 app.kubernetes.io/managed-by: lembos
-lembos.dev/environment: {{ .Values.lembos.environment | quote }}
+{{- /* A label value cannot hold "/": a qualified name is written with "." in its place. */}}
+lembos.dev/environment: {{ .Values.lembos.environment | replace "/" "." | trunc 63 | trimSuffix "." | quote }}
 lembos.dev/stage: {{ .Values.lembos.stage | quote }}
 lembos.dev/stamp: {{ .Values.lembos.stamp | quote }}
 {{- range $key, $value := .Values.lembos.dimensions }}

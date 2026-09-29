@@ -29,8 +29,9 @@ into one namespace cannot collide and the object name is traceable back to the c
 app.kubernetes.io/name: {{ include "webservice.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 app.kubernetes.io/managed-by: lembos
-lembos.dev/component: {{ .Values.lembos.component | quote }}
-lembos.dev/environment: {{ .Values.lembos.environment | quote }}
+{{- /* A label value cannot hold "/": a qualified name is written with "." in its place. */}}
+lembos.dev/component: {{ .Values.lembos.component | replace "/" "." | trunc 63 | trimSuffix "." | quote }}
+lembos.dev/environment: {{ .Values.lembos.environment | replace "/" "." | trunc 63 | trimSuffix "." | quote }}
 lembos.dev/stamp: {{ .Values.lembos.stamp | quote }}
 lembos.dev/spec-version: {{ .Values.lembos.specVersion | quote }}
 {{- end -}}
