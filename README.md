@@ -1,14 +1,12 @@
 # Northwind Charts
 
-The Helm blueprints the Lembos sample organisation is built from. Four charts, matching the four
+The Helm blueprints the Lembos sample organisation is built from. Two charts, matching the two
 `BlueprintProvisionerType.Helm` entries the Orchestrator seeds:
 
 | Chart | Blueprint | Version | Type |
 | --- | --- | --- | --- |
 | `helm-web-service` | `platform/helm-web-service` | 2.4.0 | Component |
 | `helm-worker` | `platform/helm-worker` | 1.9.0 | Component |
-| `helm-cron-job` | `platform/helm-cron-job` | 1.2.0 | Component |
-| `kubernetes-namespace` | `platform/kubernetes-namespace` | 1.3.0 | Environment |
 
 **Chart versions are load-bearing.** They are the `VersionTag` the seeded BlueprintVersion pins, and the
 coordinate a deployment resolves. Changing one here without changing the seed makes a published version
@@ -16,8 +14,8 @@ unresolvable — which is a real state the platform models, but not one to reach
 
 ## The values contract
 
-The three component charts take the **same** values shape, because Lembos renders it from a
-`ComponentSpecVersion` and does not know which chart it is feeding:
+The component charts take the **same** values shape, because Lembos renders it from a
+spec version and does not know which chart it is feeding:
 
 ```yaml
 lembos:                 # who this is, resolved by the deployment workflow
@@ -29,14 +27,14 @@ image:
   repository: ghcr.io/lembosproj-northwind/apps/web-service
   digest: ""            # pinned artifact digest; wins over tag when set
   tag: latest
-replicas: 2             # ComponentSpecVersion.Replicas
-ports:                  # ComponentSpecVersion.Ports
+replicas: 2             # the spec's
+ports:                  # the spec's
   - { name: http, port: 8080, protocol: http, isPublic: true }
-resourceBindings:       # one per ResourceNeed, keyed by its handle
+resourceBindings:       # one per resource the component depends on, keyed by a handle
   ordersDb:
     secretRef: northwind/prod/ordering/orders-db
 config: {}              # the merged ConfigSet, as environment variables
-sizeClass: small        # drives requests/limits
+sizeClass: small        # drives requests/limits; defaults to the destination's tier
 ```
 
 `resourceBindings` carries a **secret reference, never a secret value** — the path a workload resolves at
@@ -53,7 +51,7 @@ path       helm-web-service
 reference  helm-web-service/v2.4.0
 ```
 
-The tag carries the chart name because one repository holds four of them — a bare `v2.4.0` could not say
+The tag carries the chart name because one repository holds several of them — a bare `v2.4.0` could not say
 which chart it versioned. **Publishing a new chart version means cutting that tag**, or the blueprint
 version pointing at it resolves to nothing.
 
