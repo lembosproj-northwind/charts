@@ -5,8 +5,8 @@ The Helm blueprints the Lembos sample organisation is built from. Two charts, ma
 
 | Chart | Blueprint | Version | Type |
 | --- | --- | --- | --- |
-| `helm-web-service` | `platform/helm-web-service` | 2.4.0 | Component |
-| `helm-worker` | `platform/helm-worker` | 1.9.0 | Component |
+| `helm-web-service` | `platform/helm-web-service` | 2.6.0 | Component |
+| `helm-worker` | `platform/helm-worker` | 1.10.0 | Component |
 
 **Chart versions are load-bearing.** They are the `VersionTag` the seeded BlueprintVersion pins, and the
 coordinate a deployment resolves. Changing one here without changing the seed makes a published version
@@ -32,13 +32,29 @@ ports:                  # the spec's
   - { name: http, port: 8080, protocol: http, isPublic: true }
 resourceBindings:       # one per resource the component depends on, keyed by a handle
   ordersDb:
-    secretRef: northwind/prod/ordering/orders-db
-config: {}              # the merged ConfigSet, as environment variables
+    endpoint: northwind-prod-eu-west-ordering-orders-db.local:5432
+    secretRef: northwind/prod/eu-west/ordering/orders-db
+upstreams:              # one per component it calls: a host (called over HTTP on 80) or a URL
+  orderApi: ordering-order-api-eu-west.northwind-prod-eu-west.svc.cluster.local
+config: {}              # the spec's settings, as environment variables
 sizeClass: small        # drives requests/limits; defaults to the destination's tier
 ```
 
 `resourceBindings` carries a **secret reference, never a secret value** — the path a workload resolves at
 start-up. A chart that took a password as a value would put it in the release's stored manifest.
+
+Both are filled from what a component **depends on**: a spec answers each binding from its resource's `endpoint` and
+`secret_ref` outputs, and each upstream from the called component's `clusterEndpoint` — the platform reads them where
+the component runs. The charts render them the same way:
+
+| Value | Environment variable |
+| --- | --- |
+| `resourceBindings.<handle>.endpoint` | `<HANDLE>_ENDPOINT` |
+| `resourceBindings.<handle>.secretRef` | `<HANDLE>_SECRET_REF`, and `<HANDLE>_URL` from the secret of that name, when present |
+| `upstreams.<name>` | `UPSTREAM_<NAME>` — a host is prefixed `http://` |
+
+A handle and a name are camelCase (`ordersDb`, `orderApi`) and become SCREAMING_SNAKE (`ORDERS_DB`, `ORDER_API`).
+A web service's Service answers callers on port 80, at its first public port, so a caller needs only the host.
 
 ## How Lembos resolves these
 
@@ -48,17 +64,17 @@ directory, and a tag:
 ```
 location   https://github.com/lembosproj-northwind/charts
 path       helm-web-service
-reference  helm-web-service/v2.4.0
+reference  helm-web-service/v2.6.0
 ```
 
-The tag carries the chart name because one repository holds several of them — a bare `v2.4.0` could not say
+The tag carries the chart name because one repository holds several of them — a bare `v2.6.0` could not say
 which chart it versioned. **Publishing a new chart version means cutting that tag**, or the blueprint
 version pointing at it resolves to nothing.
 
 A real platform would keep charts in an OCI registry, and that is where these should end up:
 
 ```shell
-helm package helm-web-service && helm push helm-web-service-2.4.0.tgz oci://ghcr.io/lembosproj-northwind/charts
+helm package helm-web-service && helm push helm-web-service-2.6.0.tgz oci://ghcr.io/lembosproj-northwind/charts
 ```
 
 That move is deliberate and not yet made. Nothing publishes these charts to a registry, so an `oci://`
